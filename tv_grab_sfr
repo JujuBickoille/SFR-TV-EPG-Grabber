@@ -1,0 +1,85 @@
+#!/usr/bin/python
+# -*- Mode: Python; coding: utf-8; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*- 
+#
+# tv_grab_sfr.py
+# Copyright (C) 2014 JujuBickoille <JujuBickoille@free.fr>
+# 
+# tv_grab_sfr is free software: you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# tv_grab_sfr is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import argparse
+import urllib2
+import StringIO
+import gzip
+import datetime
+from xml.etree import cElementTree as ElementTree
+
+FETCH_DAYS = 5
+
+class GrabSFR():
+	def __init__(self, nbdays):
+		self.nbdays = nbdays
+
+	def run(self):
+		for day in range(0, self.nbdays):
+			self.fetch_xml (day)
+
+		self.merge_days()
+
+	def merge_days(self):
+		files = ['%s</tv>' % x.strip() for x in self.out.split('</tv>') if x.strip()]
+		trees = list()
+		out = ElementTree.Element('tv')
+		for f in files:
+			trees.append(ElementTree.XML(f))
+		for tree in trees:
+			for channel in tree.findall('.//channel'):
+				out.append(channel)
+		for tree in trees:
+			for programme in tree.findall('.//programme'):
+				out.append(programme)
+		ElementTree.dump(out)
+
+	def fetch_xml(self, offset):
+		"""offset is offset in days : 0 => today, 1 => tomorrow.....
+		return False if error or xml string if success"""
+		d = datetime.date.today() + datetime.timedelta(days=offset)
+		date = d.strftime("%Y%m%d")
+		gz = StringIO.StringIO()
+		try:
+			req = urllib2.Request('http://data.stb.neuf.fr/epg/data/xmltv/%s.gz'%date,
+				headers={
+					'User-Agent': 'Mozilla/4.0 (compatible; MSIE 5.01; Windows 98; Linux 2.4.32-tango2) [Netgem; 4.7.13; i-Player; netbox; neuftelecom]; neuftelecom;'
+				}
+			)
+			gz.write(urllib2.urlopen(req).read())
+		except:
+			return False
+		gz.seek (0)
+		self.out = gzip.GzipFile(fileobj=gz, mode='rb').read()
+		gz.close()
+		return True
+
+if __name__ == '__main__':
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--capabilities", "-c", action="store_true")
+	parser.add_argument("--description", "-d", action="store_true")
+	args = parser.parse_args()
+
+	if args.description is False and args.capabilities is False:
+		grab = GrabSFR(FETCH_DAYS)
+		grab.run()
+	if args.capabilities:
+		print("baseline")
+	if args.description:
+		print("Get SFR EPGs from http://data.stb.neuf.fr/epg/data/xmltv/ many thanks to http://www.neufbox4.org/ for help")
