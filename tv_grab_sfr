@@ -34,7 +34,7 @@ class GrabSFR():
 		for day in range(0, self.nbdays):
 			self.fetch_xml (day)
 
-		self.merge_days()
+		return self.merge_days()
 
 	def merge_days(self):
 		files = ['%s</tv>' % x.strip() for x in self.out.split('</tv>') if x.strip()]
@@ -48,7 +48,7 @@ class GrabSFR():
 		for tree in trees:
 			for programme in tree.findall('.//programme'):
 				out.append(programme)
-		ElementTree.dump(out)
+		return ElementTree.tostring(out)
 
 	def fetch_xml(self, offset):
 		"""offset is offset in days : 0 => today, 1 => tomorrow.....
@@ -74,12 +74,28 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--capabilities", "-c", action="store_true")
 	parser.add_argument("--description", "-d", action="store_true")
+	parser.add_argument("--output", "-o", help='To write output to file')
+	parser.add_argument("--format", "-f", help='gzip for output in gzip ( tell me if you need other formats )')
 	args = parser.parse_args()
 
 	if args.description is False and args.capabilities is False:
 		grab = GrabSFR(FETCH_DAYS)
-		grab.run()
+		datas = grab.run()
 	if args.capabilities:
 		print("baseline")
+
+	if args.output:
+		try:
+			if args.format == 'gzip':
+				with gzip.open(args.output, 'w') as fd:
+					fd.write(datas)
+			else:
+				with open(args.output, 'w') as fd:
+					fd.write(datas)
+			print 'File %s generated successfull'%args.output
+		except Exception as e:
+			print 'Error, cannot write %s : %s'%(args.output, e)
+	else:
+		print (datas)
 	if args.description:
 		print("Get SFR EPGs from http://data.stb.neuf.fr/epg/data/xmltv/ many thanks to http://www.neufbox4.org/ for help")
