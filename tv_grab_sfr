@@ -27,8 +27,9 @@ from xml.etree import cElementTree as ElementTree
 FETCH_DAYS = 5
 
 class GrabSFR():
-	def __init__(self, nbdays):
+	def __init__(self, nbdays, offset=0):
 		self.nbdays = nbdays
+		self.offset = offset
 
 	def run(self):
 		for day in range(0, self.nbdays):
@@ -53,8 +54,9 @@ class GrabSFR():
 	def fetch_xml(self, offset):
 		"""offset is offset in days : 0 => today, 1 => tomorrow.....
 		return False if error or xml string if success"""
-		d = datetime.date.today() + datetime.timedelta(days=offset)
+		d = datetime.date.today() + datetime.timedelta(days=offset+self.offset)
 		date = d.strftime("%Y%m%d")
+		print "Fetching %s"%date
 		gz = StringIO.StringIO()
 		try:
 			req = urllib2.Request('http://data.stb.neuf.fr/epg/data/xmltv/%s.gz'%date,
@@ -74,12 +76,14 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--capabilities", "-c", action="store_true")
 	parser.add_argument("--description", "-d", action="store_true")
+	parser.add_argument("--days", type=int, help="how many days fetch ?")
+	parser.add_argument("--offset", type=int, help="start fetch from ? ( 0: today, 1:tomorrow )")
 	parser.add_argument("--output", "-o", help='To write output to file')
 	parser.add_argument("--format", "-f", help='gzip for output in gzip ( tell me if you need other formats )')
 	args = parser.parse_args()
 
 	if args.description is False and args.capabilities is False:
-		grab = GrabSFR(FETCH_DAYS)
+		grab = GrabSFR(nbdays=args.days or FETCH_DAYS, offset=args.offset or 0)
 		datas = grab.run()
 	if args.capabilities:
 		print("baseline")
