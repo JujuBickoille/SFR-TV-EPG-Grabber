@@ -56,7 +56,8 @@ class GrabSFR():
 		return False if error or xml string if success"""
 		d = datetime.date.today() + datetime.timedelta(days=offset+self.offset)
 		date = d.strftime("%Y%m%d")
-		print "Fetching %s"%date
+		if args.output:
+			print "Fetching %s"%date
 		gz = StringIO.StringIO()
 		try:
 			req = urllib2.Request('http://data.stb.neuf.fr/epg/data/xmltv/%s.gz'%date,
