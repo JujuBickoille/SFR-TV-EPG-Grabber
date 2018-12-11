@@ -30,6 +30,7 @@ class GrabSFR():
 	def __init__(self, nbdays, offset=0):
 		self.nbdays = nbdays
 		self.offset = offset
+		self.out = str()
 
 	def run(self):
 		for day in range(0, self.nbdays):
@@ -69,7 +70,7 @@ class GrabSFR():
 		except:
 			return False
 		gz.seek (0)
-		self.out = gzip.GzipFile(fileobj=gz, mode='rb').read()
+		self.out += gzip.GzipFile(fileobj=gz, mode='rb').read()
 		gz.close()
 		return True
 
